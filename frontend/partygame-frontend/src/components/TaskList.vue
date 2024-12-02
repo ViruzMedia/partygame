@@ -20,28 +20,59 @@ import api from '../api';
 
 export default {
     name: 'TaskList',
-    data() {
-        return {
-            tasks: [],
-        };
-    },
     computed: {
         ...mapState({
-            category: (state) => state.tasks.category, // Holen der Kategorie aus dem Vuex-Store
+            category: (state) => state.tasks.category,
+            sessionId: (state) => state.sessionId,
+            tasks: (state) => state.tasks.tasks,
         }),
     },
-    async created() {
-        console.log('Aktuelle Kategorie in TaskList:', this.category); // Debugging der Kategorie
-        if (this.category) {
-            try {
-                const response = await api.get(`/api/tasks/${this.category}`);
-                this.tasks = response.data;
-            } catch (error) {
-                console.error('Fehler beim Laden der Aufgaben:', error);
-            }
-        } else {
-            console.error('Kategorie ist undefined!');
+    watch: {
+        tasks(newTasks) {
+            console.log('Neue Aufgaben im Store:', newTasks); // Log zur Überprüfung
+        },
+    },
+    mounted() {
+        console.log('TaskList-Komponente wurde gemountet');
+        console.log('Aktuelle Aufgaben im Store:', this.tasks); // Log zur Überprüfung
+        if (!this.tasks.length) {
+            console.warn('Keine Aufgaben gefunden, obwohl sie erwartet wurden.');
         }
+        if (this.sessionId && this.tasks.length === 0) {
+            console.log('Tasks sind leer, rufe fetchTasks auf');
+            this.fetchTasks(); // Aufgaben abrufen
+        }
+    },
+    methods: {
+        async fetchTasks() {
+            console.log('Rufe Aufgaben ab...');
+            if (this.sessionId && this.category) {
+                try {
+                    const response = await api.get(`/api/tasks/${this.category}`);
+                    console.log('Antwort von API in TaskList:', response.data);  // Log zur Überprüfung der API-Antwort
+                    this.$store.dispatch('fetchTasks');  // Aufgaben aus dem Store abrufen
+                } catch (error) {
+                    console.error('Fehler beim Laden der Aufgaben:', error);
+                }
+            }
+        },
+        async submitTaskResult(taskId) {
+            if (!this.sessionId) {
+                console.error('Fehler: Keine Session-ID vorhanden');
+                return;
+            }
+            try {
+                const response = await api.post('/api/tasks/submit', {
+                    taskId,
+                    sessionId: this.sessionId,
+                    userId: 'User123',
+                });
+                console.log('Ergebnis gesendet:', response.data);
+                alert(`Du hast ${response.data.points} Punkte verdient!`);
+            } catch (error) {
+                console.error('Fehler beim Senden des Ergebnisses:', error);
+            }
+        },
     },
 };
 </script>
