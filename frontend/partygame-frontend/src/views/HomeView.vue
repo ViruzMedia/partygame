@@ -1,18 +1,28 @@
 <template>
-  <div class="home">
-    <img alt="Vue logo" src="../assets/logo.png">
-    <HelloWorld msg="Welcome to Your Vue.js App"/>
+  <div>
+    <h1>HomeView</h1>
+    <p>{{ message }}</p>
   </div>
 </template>
 
 <script>
-// @ is an alias to /src
-import HelloWorld from '@/components/HelloWorld.vue'
+import api from '../api'; // Importiere die Axios-Instanz
 
 export default {
   name: 'HomeView',
-  components: {
-    HelloWorld
-  }
-}
+  data() {
+    return {
+      message: 'Loading...', // Standardnachricht bis die API antwortet
+    };
+  },
+  async created() {
+    try {
+      const response = await api.get('/'); // Testaufruf an die API
+      this.message = response.data; // API-Antwort setzen
+    } catch (error) {
+      console.error('API-Aufruf fehlgeschlagen:', error);
+      this.message = 'Fehler beim Laden der Nachricht';
+    }
+  },
+};
 </script>
