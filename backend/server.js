@@ -2,6 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const lobbyRoutes = require('./routes/lobbyRoutes');
 
 dotenv.config();
 const app = express();
@@ -18,6 +19,9 @@ mongoose.connect(process.env.MONGO_URI, {
 })
   .then(() => console.log('MongoDB connected!'))
   .catch(err => console.error(err));
+
+// Routen
+app.use('/api/lobby', lobbyRoutes);
 
 // Beispiel-Route
 app.get('/', (req, res) => {
