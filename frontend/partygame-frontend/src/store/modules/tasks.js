@@ -1,8 +1,7 @@
 import api from '../../api';
-
 const state = {
     tasks: [],
-    category: 'Party', // Standardkategorie, die auf 'Party' gesetzt ist
+    category: 'Party', // Standardkategorie
 };
 
 const mutations = {
@@ -10,12 +9,13 @@ const mutations = {
         state.tasks = tasks;
     },
     SET_CATEGORY(state, category) {
-        state.category = category;
+        state.category = category;  // Korrektes Setzen der Kategorie
     },
 };
 
 const actions = {
     async fetchTasks({ commit, state }) {
+        console.log('Aktuelle Kategorie im Store:', state.category); // Logging im Store
         try {
             const response = await api.get(`/api/tasks/${state.category}`);
             commit('SET_TASKS', response.data);
