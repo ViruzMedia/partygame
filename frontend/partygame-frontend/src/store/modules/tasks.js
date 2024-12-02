@@ -31,6 +31,20 @@ const actions = {
             }
         }
     },
+    async submitTask({ state }, { taskId, userId }) {
+        try {
+            const response = await api.post("/api/tasks/submit", {
+                taskId,
+                sessionId: state.sessionId,
+                userId,
+            });
+            console.log("Task erfolgreich abgeschlossen:", response.data);
+            return response.data;
+        } catch (error) {
+            console.error("Fehler beim Abschließen der Aufgabe:", error);
+            throw error;
+        }
+    },
 };
 
 const getters = {

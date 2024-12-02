@@ -1,38 +1,63 @@
 <template>
   <div>
-    <h1>Willkommen zum Partyspiel!</h1>
-    <button @click="createLobby">Erstelle eine neue Lobby</button>
-    <task-list v-if="showTaskList"></task-list>
+    <button @click="createLobby">Erstelle Lobby</button>
+    <button @click="joinLobby">Tritt Lobby bei</button>
+    <button @click="startRound">Starte Runde</button>
+
+    <div v-if="currentTask">
+      <h3>{{ currentTask.title }}</h3>
+      <p>{{ currentTask.description }}</p>
+      <button @click="finishTask">Aufgabe abgeschlossen</button>
+    </div>
   </div>
 </template>
 
 <script>
-import { mapGetters } from "vuex";
-import TaskList from "../components/TaskList.vue";
+import api from '../api'; // Axios API-Instanz importieren
 
 export default {
-  name: "HomeView",
-  components: {
-    TaskList,
-  },
-  computed: {
-    ...mapGetters('tasks', ['getTasks']), // Zugriff auf Aufgaben
-    showTaskList() {
-      return this.getTasks && this.getTasks.length > 0;
-    },
+  data() {
+    return {
+      sessionId: '',
+      currentTask: null,
+      userId: 'player1',
+    };
   },
   methods: {
     async createLobby() {
       try {
-        const response = await this.$store.dispatch('lobby/createLobby', { hostId: "Host123" });
-        const sessionId = response.data.sessionId;
-        await this.$store.dispatch('tasks/setSessionId', sessionId);
-        await this.$store.dispatch('tasks/fetchTasks');
-        console.log("Lobby erstellt und Aufgaben abgerufen.");
+        const response = await api.post('/api/lobby/create', { host: 'HostName' });
+        this.sessionId = response.data.sessionId; // Verwenden der Axios Antwort
       } catch (error) {
-        console.error("Fehler beim Erstellen der Lobby:", error);
+        console.error('Fehler beim Erstellen der Lobby:', error);
       }
     },
-  },
+    async joinLobby() {
+      try {
+        const response = await api.post('/api/lobby/join', {
+          sessionId: this.sessionId,
+          userId: this.userId,  // userId in der Anfrage übergeben
+        });
+        console.log('Spieler beigetreten:', response.data);
+      } catch (error) {
+        console.error('Fehler beim Beitreten der Lobby:', error);
+      }
+    },
+    async startRound() {
+      try {
+        const response = await api.post('/api/lobby/start-round', {
+          sessionId: this.sessionId,
+        });
+        this.currentTask = response.data.task; // Zeigt die Aufgabe an
+        this.playersForTask = response.data.playersForTask; // Zuordnen der Spieler für die Aufgabe
+      } catch (error) {
+        console.error('Fehler beim Starten der Runde:', error);
+      }
+    },
+    async finishTask() {
+      // Weiterführende Logik zur Bestätigung der Aufgabe (hier kann eine API zur Bewertung hinzugefügt werden)
+      console.log('Aufgabe abgeschlossen');
+    }
+  }
 };
 </script>

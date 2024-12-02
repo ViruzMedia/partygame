@@ -11,6 +11,7 @@ const getTasksByCategory = async (req, res) => {
         }
         res.status(200).json(tasks);
     } catch (error) {
+        console.error('Fehler beim Abrufen der Aufgaben:', error);
         res.status(500).json({ message: 'Fehler beim Abrufen der Aufgaben', error });
     }
 };
@@ -23,15 +24,18 @@ const createTask = async (req, res) => {
         await newTask.save();
         res.status(201).json(newTask);
     } catch (error) {
+        console.error('Fehler beim Erstellen der Aufgabe:', error);
         res.status(500).json({ message: 'Fehler beim Erstellen der Aufgabe', error });
     }
 };
+
+// Funktion: Task-Ergebnis einreichen
 const submitTaskResult = async (req, res) => {
-    const { taskId, sessionId, userId } = req.body;
+    const { sessionId, taskId, userId } = req.body;
+
     try {
-        const task = await Task.findById(taskId);
-        if (!task) {
-            return res.status(404).json({ message: 'Aufgabe nicht gefunden' });
+        if (!userId) {
+            return res.status(400).json({ message: 'UserId ist erforderlich' });
         }
 
         const session = await Session.findOne({ sessionId });
@@ -39,18 +43,22 @@ const submitTaskResult = async (req, res) => {
             return res.status(404).json({ message: 'Session nicht gefunden' });
         }
 
-        const player = session.players.find(player => player.userId === userId);
+        let player = session.players.find((player) => player.userId === userId);
         if (!player) {
-            return res.status(404).json({ message: 'Spieler nicht in der Session' });
+            // Spieler hinzufügen, falls nicht vorhanden
+            player = { userId, points: 0 };
+            session.players.push(player);
         }
 
-        player.points += task.points;
-
+        // Punkte hinzufügen
+        player.points += 10; // Beispiel: 10 Punkte
         await session.save();
-        res.status(200).json({ message: 'Aufgabe abgeschlossen, Punkte vergeben', points: player.points });
+
+        res.status(200).json({ message: 'Task erfolgreich abgeschlossen', points: player.points });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Fehler bei der Aufgabenbewertung' });
+        console.error('Fehler beim Abschließen der Aufgabe:', error);
+        res.status(500).json({ message: 'Fehler beim Abschließen der Aufgabe', error });
     }
 };
+
 module.exports = { getTasksByCategory, createTask, submitTaskResult };

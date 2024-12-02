@@ -1,6 +1,16 @@
 <template>
-  <div id="app">
-    <router-view></router-view>
+  <div>
+    <b-navbar variant="dark" type="dark" class="mb-4">
+      <b-container>
+        <b-navbar-brand href="#">PartyGame</b-navbar-brand>
+        <b-navbar-nav>
+          <b-nav-item href="#" active>Home</b-nav-item>
+        </b-navbar-nav>
+      </b-container>
+    </b-navbar>
+    <b-container>
+      <router-view />
+    </b-container>
   </div>
 </template>
 
@@ -11,12 +21,8 @@ export default {
 </script>
 
 <style>
-/* Basis-Styling */
-#app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
+body {
+  background-color: #1a1a1a;
+  color: #fff;
 }
 </style>

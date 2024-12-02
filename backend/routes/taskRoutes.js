@@ -8,6 +8,7 @@ router.get('/:category', getTasksByCategory);
 // Route: Neue Aufgabe erstellen
 router.post('/', createTask);
 
-// Endpunkt für das Einreichen einer Aufgabe (Punkte vergeben)
+// Route: Aufgabe einreichen und Punkte vergeben
 router.post('/submit', submitTaskResult);
+
 module.exports = router;

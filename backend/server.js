@@ -1,40 +1,44 @@
+// Import notwendiger Module
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
-const morgan = require('morgan');  // Import von Morgan
+const morgan = require('morgan'); // Logging-Tool
 const taskRoutes = require('./routes/taskRoutes');
 const lobbyRoutes = require('./routes/lobbyRoutes');
+const roundRoutes = require('./routes/roundRoutes')
 
+// .env-Konfiguration laden
 dotenv.config();
+
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Morgan als Middleware für Logging einbinden
-app.use(morgan('dev')); // 'dev' ist ein praktisches Format für die Konsole
-
 // Middleware
-app.use(cors());
-app.use(express.json());
+app.use(morgan('dev')); // Praktisches Logging-Format für die Entwicklung
+app.use(cors()); // Cross-Origin-Anfragen erlauben
+app.use(express.json()); // JSON-Payloads parsen
 
-// MongoDB-Verbindung
-mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
-  .then(() => console.log('MongoDB connected!'))
-  .catch(err => console.error(err));
+// MongoDB-Verbindung herstellen
+mongoose
+  .connect(process.env.MONGO_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
+  .then(() => console.log('✅ MongoDB verbunden!'))
+  .catch((err) => console.error('❌ Fehler bei der MongoDB-Verbindung:', err));
 
 // Routen einbinden
 app.use('/api/tasks', taskRoutes);
 app.use('/api/lobby', lobbyRoutes);
+app.use('/api/round', roundRoutes);
 
 // Beispiel-Route
 app.get('/', (req, res) => {
-  res.send('API is running...');
+  res.send('🚀 API läuft...');
 });
 
 // Server starten
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`✅ Server läuft auf Port ${PORT}`);
 });
