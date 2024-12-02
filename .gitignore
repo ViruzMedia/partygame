@@ -1,0 +1,41 @@
+# Allgemein
+.DS_Store
+Thumbs.db
+*.log
+npm-debug.log*
+
+# Node.js
+node_modules/
+.env
+*.env.local
+
+# Vue.js
+/dist/
+/public/static
+/.idea/
+/.vscode/
+/*.local
+/.cache/
+*.lock
+
+# IDEs und Texteditoren
+*.sublime-project
+*.sublime-workspace
+*.code-workspace
+
+# Betriebssystem-Dateien
+*.swp
+*.bak
+*.tmp
+*.temp
+*.~lock.*
+*.log
+
+# CI/CD
+coverage/
+*.test.js
+.jest/
+
+# Docker (Falls später verwendet)
+docker-compose.override.yml
+*.dockerignore
