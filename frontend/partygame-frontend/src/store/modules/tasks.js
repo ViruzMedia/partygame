@@ -11,8 +11,8 @@ const mutations = {
     },
     SET_TASKS(state, tasks) {
         console.log('SET_TASKS Mutation aufgerufen, Aufgaben:', tasks);
-        state.tasks.splice(0, state.tasks.length, ...tasks); // Aktualisiert das Array reaktiv
-    },
+        state.tasks.splice(0, state.tasks.length, ...tasks); // Reaktive Änderung
+    }
 };
 
 const actions = {
@@ -38,7 +38,9 @@ const actions = {
 const getters = {
     getSessionId: (state) => state.sessionId,
     getCategory: (state) => state.category,
-    getTasks: (state) => state.tasks,  // Getter für Aufgaben
+    getTasks(state) {
+        return state.tasks;
+    },
 };
 
 export default {
