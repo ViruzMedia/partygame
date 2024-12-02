@@ -15,20 +15,14 @@ const mutations = {
 };
 
 const actions = {
-    async createLobby({ commit }, hostId) {
+    async createLobby({ commit }, { hostId }) {
         try {
             const response = await api.post('/api/lobby/create', { hostId });
             commit('SET_SESSION_ID', response.data.sessionId);
+            return response; // API-Antwort zurückgeben
         } catch (error) {
             console.error('Fehler beim Erstellen der Lobby:', error);
-        }
-    },
-    async joinLobby({ commit }, { sessionId, userId }) {
-        try {
-            await api.post('/api/lobby/join', { sessionId, userId });
-            commit('SET_SESSION_ID', sessionId);
-        } catch (error) {
-            console.error('Fehler beim Beitreten der Lobby:', error);
+            throw error; // Fehler weiterreichen
         }
     },
 };
@@ -39,6 +33,7 @@ const getters = {
 };
 
 export default {
+    namespaced: true,
     state,
     mutations,
     actions,

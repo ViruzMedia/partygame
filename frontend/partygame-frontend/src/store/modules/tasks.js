@@ -1,8 +1,9 @@
 import api from '../../api';
+
 const state = {
     sessionId: null,
     category: 'Party',
-    tasks: [],  // Aufgaben als Array im Store
+    tasks: [],
 };
 
 const mutations = {
@@ -10,9 +11,8 @@ const mutations = {
         state.sessionId = sessionId;
     },
     SET_TASKS(state, tasks) {
-        console.log('SET_TASKS Mutation aufgerufen, Aufgaben:', tasks);
         state.tasks.splice(0, state.tasks.length, ...tasks); // Reaktive Änderung
-    }
+    },
 };
 
 const actions = {
@@ -23,27 +23,23 @@ const actions = {
         if (state.sessionId && state.category) {
             try {
                 const response = await api.get(`/api/tasks/${state.category}`);
-                console.log('Antwort von der API:', response);  // Log zur Überprüfung der gesamten API-Antwort
-                commit('SET_TASKS', response.data);  // Aufgaben im Store speichern
-                console.log('Aufgaben im Store gespeichert:', response.data);  // Log zur Überprüfung, was im Store gespeichert wird
+                commit('SET_TASKS', response.data);
+                return response; // Aufgaben-Antwort zurückgeben
             } catch (error) {
                 console.error('Fehler beim Laden der Aufgaben:', error);
+                throw error; // Fehler weiterreichen
             }
-        } else {
-            console.error('Fehler: Keine Session-ID oder Kategorie gesetzt');
         }
     },
 };
 
 const getters = {
     getSessionId: (state) => state.sessionId,
-    getCategory: (state) => state.category,
-    getTasks(state) {
-        return state.tasks;
-    },
+    getTasks: (state) => state.tasks,
 };
 
 export default {
+    namespaced: true,
     state,
     mutations,
     actions,

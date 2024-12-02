@@ -6,6 +6,7 @@ import { createI18n } from 'vue-i18n';
 import 'bootstrap/dist/css/bootstrap.css';
 import 'bootstrap-vue-3/dist/bootstrap-vue-3.css';
 
+// Lokalisierungsmeldungen
 const messages = {
     en: {
         welcome: 'Welcome to the Party Game!',
@@ -15,10 +16,12 @@ const messages = {
     },
 };
 
+// Internationalisierung konfigurieren
 const i18n = createI18n({
-    locale: 'en', // Default-Sprache
+    locale: 'en', // Standardsprache
     messages,
 });
 
+// App erstellen und Plugins hinzufügen
 const app = createApp(App);
 app.use(store).use(router).use(i18n).mount('#app');
