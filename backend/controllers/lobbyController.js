@@ -1,62 +1,60 @@
-const { v4: uuidv4 } = require('uuid');
 const Session = require('../models/sessionModel');
 
-// Kurzcode generieren
-const generateShortCode = () => {
-  return Math.random().toString(36).substring(2, 8).toUpperCase(); // 6-stelliger Code
-};
-
-// Lobby erstellen
-const createLobby = async (req, res) => {
-  const shortCode = generateShortCode();
-  const session = new Session({
-    host: req.body.host,
-    sessionId: uuidv4(),
-    shortCode,
-    category: req.body.category || 'Party',
-    tasks: [],
-    players: [{ userId: req.body.host, name: req.body.host, points: 0 }], // Host tritt bei
-  });
-
-  await session.save();
-
-  res.status(201).json({
-    sessionId: session.sessionId,
-    shortCode: session.shortCode,
-    players: session.players,
-    host: req.body.host,
-  });
-};
-
-const joinLobby = async (req, res) => {
-    const { shortCode, userId, name } = req.body;
-
+// Funktion zum Erstellen einer neuen Lobby
+exports.createLobby = async (req, res) => {
     try {
-        const session = await Session.findOne({ shortCode }).populate('tasks');
+        const { host } = req.body;
+        const shortCode = generateShortCode();
+        const sessionId = generateSessionId();
+
+        const newSession = new Session({
+            sessionId,
+            host,
+            shortCode,
+            players: [{ userId: host, name: host, points: 0 }],
+        });
+
+        await newSession.save();
+        res.status(201).json(newSession);  // Erfolgreiche Antwort zurückgeben
+    } catch (error) {
+        res.status(500).json({ message: 'Fehler beim Erstellen der Lobby', error });
+    }
+};
+
+// Funktion zum Beitreten einer bestehenden Lobby
+exports.joinLobby = async (req, res) => {
+    try {
+        const { shortCode, userId, name } = req.body;
+        const session = await Session.findOne({ shortCode });
         if (!session) {
-            return res.status(404).json({ message: 'Lobby nicht gefunden.' });
+            return res.status(404).json({ message: 'Lobby nicht gefunden' });
         }
 
-        // Spieler hinzufügen, wenn er noch nicht existiert
         if (!session.players.some(player => player.userId === userId)) {
             session.players.push({ userId, name, points: 0 });
             await session.save();
         }
-
-        res.status(200).json({
-            sessionId: session.sessionId,
-            shortCode: session.shortCode, // Kurzcode immer mitgeben
-            players: session.players,
-            host: session.host,
-        });
+        res.status(200).json(session);
     } catch (error) {
-        console.error('Fehler beim Beitreten der Lobby:', error);
-        res.status(500).json({ message: 'Fehler beim Beitreten der Lobby.', error });
+        res.status(500).json({ message: 'Fehler beim Beitreten der Lobby', error });
     }
 };
 
-
-module.exports = {
-  createLobby,
-  joinLobby,
+// Funktion zum Schließen einer bestehenden Lobby
+exports.closeLobby = async (req, res) => {
+    try {
+        const { shortCode } = req.body;
+        await Session.deleteOne({ shortCode });
+        res.status(200).json({ message: 'Lobby geschlossen' });
+    } catch (error) {
+        res.status(500).json({ message: 'Fehler beim Schließen der Lobby', error });
+    }
 };
+
+function generateShortCode() {
+    return Math.random().toString(36).substring(2, 8).toUpperCase();
+}
+
+function generateSessionId() {
+    return Math.random().toString(36).substring(2, 10);
+}

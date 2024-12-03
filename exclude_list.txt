@@ -1,5 +1,4 @@
-node_modules\
-.git\
-dist\
-coverage\
-*.log
+.git 
+.gitignore 
+node_modules 
+dist 

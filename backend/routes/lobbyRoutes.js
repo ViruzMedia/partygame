@@ -1,11 +1,15 @@
 const express = require('express');
-const router = express.Router();
-const { createLobby, joinLobby } = require('../controllers/lobbyController');
+const { createLobby, joinLobby, closeLobby } = require('../controllers/lobbyController');
 
-// Route: Neue Lobby erstellen
+const router = express.Router();
+
+// Route: Lobby erstellen
 router.post('/create', createLobby);
 
-// Route: Beitreten einer bestehenden Lobby
+// Route: Lobby beitreten
 router.post('/join', joinLobby);
+
+// Route: Lobby schließen
+router.post('/close', closeLobby);
 
 module.exports = router;

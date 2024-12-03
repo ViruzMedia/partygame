@@ -1,22 +1,18 @@
 <template>
   <div class="home">
-    <button @click="createLobby">Erstelle Lobby</button>
-    <div v-if="lobby">
-      <p><strong>Kurzcode:</strong> {{ lobby.shortCode }}</p>
-      <router-link :to="{ name: 'Lobby' }">Zur Lobby</router-link>
+    <h1>Partyspiel Lobby</h1>
+
+    <div>
+      <h2>Lobby erstellen</h2>
+      <input type="text" v-model="hostName" placeholder="Dein Name" />
+      <button @click="createLobby">Lobby erstellen</button>
     </div>
 
     <div>
-      <h3>Lobby beitreten</h3>
-      <input
-        v-model="shortCode"
-        placeholder="Kurzcode eingeben"
-      />
-      <input
-        v-model="name"
-        placeholder="Name eingeben"
-      />
-      <button @click="joinLobby">Tritt Lobby bei</button>
+      <h2>Lobby beitreten</h2>
+      <input type="text" v-model="joinCode" placeholder="Kurzcode" />
+      <input type="text" v-model="playerName" placeholder="Dein Name" />
+      <button @click="joinLobby">Beitreten</button>
     </div>
   </div>
 </template>
@@ -25,38 +21,47 @@
 export default {
   data() {
     return {
-      lobby: null, // Speichert die Lobby-Daten
-      shortCode: '', // Kurzcode für Beitritt
-      name: '', // Name des Spielers
+      hostName: '',
+      joinCode: '',
+      playerName: '',
     };
   },
   methods: {
     async createLobby() {
-      try {
-        const response = await this.$store.dispatch('createLobby', { host: 'HostName' });
-        this.lobby = response; // Lobby-Daten inkl. Kurzcode speichern
-        this.$router.push({ name: 'Lobby' }); // Weiterleitung zur Lobby
-      } catch (error) {
-        console.error('Fehler beim Erstellen der Lobby:', error);
-      }
-    },
-    async joinLobby() {
-      if (!this.shortCode.trim() || !this.name.trim()) {
-        console.error('Kurzcode oder Name fehlt!');
+      if (!this.hostName) {
+        alert('Bitte gib deinen Namen ein!');
         return;
       }
       try {
-        const response = await this.$store.dispatch('joinLobby', {
-          shortCode: this.shortCode.trim(),
-          userId: this.name.trim(), // Spielername als ID nutzen
-          name: this.name.trim(),
-        });
-        this.lobby = response; // Lobby-Daten speichern
-        this.$router.push({ name: 'Lobby' }); // Weiterleitung nach erfolgreichem Beitritt
+        await this.$store.dispatch('createLobby', { host: this.hostName });
+        this.$router.push('/lobby');
+      } catch (error) {
+        console.error('Fehler beim Erstellen der Lobby:', error);
+        alert('Lobby konnte nicht erstellt werden.');
+      }
+    },
+    async joinLobby() {
+      if (!this.joinCode || !this.playerName) {
+        alert('Bitte gib Kurzcode und deinen Namen ein!');
+        return;
+      }
+      try {
+        await this.$store.dispatch('joinLobby', { shortCode: this.joinCode, name: this.playerName });
+        this.$router.push('/lobby');
       } catch (error) {
         console.error('Fehler beim Beitreten der Lobby:', error);
+        alert('Lobby konnte nicht beigetreten werden.');
       }
     },
   },
 };
 </script>
+
+<style scoped>
+.home {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+</style>

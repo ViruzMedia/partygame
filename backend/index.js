@@ -1,69 +1,115 @@
 const express = require('express');
 const http = require('http');
+const mongoose = require('mongoose');
+const dotenv = require('dotenv');
 const { Server } = require('socket.io');
+const cors = require('cors');
+const morgan = require('morgan');
+const taskRoutes = require('./routes/taskRoutes');
+const lobbyRoutes = require('./routes/lobbyRoutes');
+const roundRoutes = require('./routes/roundRoutes');
+
+// .env-Konfiguration laden
+dotenv.config();
+
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: '*', // Erlaube Anfragen von allen Quellen
+    origin: '*',
     methods: ['GET', 'POST'],
   },
 });
 
-// Speichert aktive Lobbys und Verbindungen
-const lobbies = {};
+// Middleware
+app.use(morgan('dev'));
+app.use(cors());
+app.use(express.json());
+
+// MongoDB-Verbindung herstellen
+mongoose
+  .connect(process.env.MONGO_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
+  .then(() => console.log('✅ MongoDB verbunden!'))
+  .catch((err) => console.error('❌ Fehler bei der MongoDB-Verbindung:', err));
+
+// Routen
+app.use('/tasks', taskRoutes);
+app.use('/lobby', lobbyRoutes);
+app.use('/round', roundRoutes);
+
+// Beispiel-Route
+app.get('/', (req, res) => {
+  res.send('🚀 API läuft...');
+});
+
+// Temporäre Speicherstruktur für aktive Lobbys
+const activeLobbies = {};
+
+// Socket.IO-Logik
 io.on('connection', (socket) => {
-    console.log('Ein Benutzer hat sich verbunden:', socket.id);
-  
-    // Spieler tritt einer Lobby bei
-    socket.on('join-lobby', ({ shortCode, userId, name }) => {
-      if (!lobbies[shortCode]) {
-        lobbies[shortCode] = [];
-      }
-      lobbies[shortCode].push({ socketId: socket.id, userId, name });
-  
+  console.log('Ein Benutzer hat sich verbunden:', socket.id);
+
+  socket.on('join-lobby', async ({ shortCode, userId, name }) => {
+    const lobby = activeLobbies[shortCode] || (await updateLobbyFromDB(shortCode));
+    if (!lobby) {
+      return socket.emit('error', 'Lobby nicht gefunden.');
+    }
+
+    if (!lobby.players.some(player => player.userId === userId)) {
+      lobby.players.push({ socketId: socket.id, userId, name });
+      activeLobbies[shortCode] = lobby;
       socket.join(shortCode);
-      io.to(shortCode).emit('lobby-updated', lobbies[shortCode]); // Informiere über neuen Spieler
-    });
-  
-    // Spieler verlässt die Lobby
-    socket.on('leave-lobby', (shortCode) => {
-      if (lobbies[shortCode]) {
-        lobbies[shortCode] = lobbies[shortCode].filter((player) => player.socketId !== socket.id);
-        io.to(shortCode).emit('lobby-updated', lobbies[shortCode]); // Informiere über aktualisierte Spieler
-      }
-      socket.leave(shortCode);
-    });
-  
-    // Host entfernt einen Spieler
-    socket.on('remove-player', ({ shortCode, userId }) => {
-      if (lobbies[shortCode]) {
-        const playerToRemove = lobbies[shortCode].find((player) => player.userId === userId);
-        if (playerToRemove) {
-          io.to(playerToRemove.socketId).emit('lobby-removed'); // Informiere den entfernten Spieler
-          lobbies[shortCode] = lobbies[shortCode].filter((player) => player.userId !== userId);
-          io.to(shortCode).emit('lobby-updated', lobbies[shortCode]); // Informiere über aktualisierte Spieler
-        }
-      }
-    });
-  
-    // Host schließt die Lobby
-    socket.on('close-lobby', (shortCode) => {
-      if (lobbies[shortCode]) {
-        io.to(shortCode).emit('lobby-closed'); // Informiere alle Spieler
-        delete lobbies[shortCode];
-      }
-    });
-  
-    // Spieler verlässt die Lobby beim Schließen des Browsers
-    socket.on('disconnect', () => {
-      Object.keys(lobbies).forEach((shortCode) => {
-        lobbies[shortCode] = lobbies[shortCode].filter((player) => player.socketId !== socket.id);
-        io.to(shortCode).emit('lobby-updated', lobbies[shortCode]); // Informiere über aktualisierte Spieler
-      });
-    });
+
+      io.to(shortCode).emit('lobby-updated', lobby);
+    }
   });
 
-server.listen(3000, () => {
-  console.log('Server läuft auf Port 3000');
+  socket.on('remove-player', async ({ shortCode, userId }) => {
+    const lobby = activeLobbies[shortCode];
+    if (lobby) {
+      lobby.players = lobby.players.filter(player => player.userId !== userId);
+      activeLobbies[shortCode] = lobby;
+
+      io.to(shortCode).emit('lobby-updated', lobby);
+      io.to(lobby.players.find(p => p.userId === userId)?.socketId).emit('removed-from-lobby');
+    }
+  });
+
+  socket.on('close-lobby', async (shortCode) => {
+    if (activeLobbies[shortCode]) {
+      io.to(shortCode).emit('lobby-closed');
+      delete activeLobbies[shortCode];
+      await deleteLobbyFromDB(shortCode);
+    }
+  });
+
+  socket.on('disconnect', () => {
+    Object.keys(activeLobbies).forEach(shortCode => {
+      const lobby = activeLobbies[shortCode];
+      lobby.players = lobby.players.filter(player => player.socketId !== socket.id);
+      activeLobbies[shortCode] = lobby;
+      io.to(shortCode).emit('lobby-updated', lobby);
+    });
+  });
+});
+
+// Hilfsfunktionen
+async function updateLobbyFromDB(shortCode) {
+  const session = await Session.findOne({ shortCode });
+  if (!session) return null;
+  activeLobbies[shortCode] = { players: session.players, host: session.host };
+  return activeLobbies[shortCode];
+}
+
+async function deleteLobbyFromDB(shortCode) {
+  await Session.deleteOne({ shortCode });
+}
+
+// Server starten
+const PORT = 3000;
+server.listen(PORT, () => {
+  console.log(`✅ Server läuft auf Port ${PORT}`);
 });
