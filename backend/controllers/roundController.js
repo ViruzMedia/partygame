@@ -7,74 +7,33 @@ const { handleError } = require('../utils/helpers'); // Reusable error handler
 const startNewRound = async (req, res) => {
     const { sessionId } = req.body;
 
-    if (!sessionId) {
-        return res.status(400).json({ message: 'Session-ID ist erforderlich.' });
-    }
-
     try {
-        const session = await Session.findOne({ sessionId }).populate('players').populate('tasks');
-
+        const session = await Session.findById(sessionId).populate('tasks players');
         if (!session) {
             return res.status(404).json({ message: 'Session nicht gefunden.' });
         }
 
-        // Aufgabe und Spieler für die neue Runde auswählen
-        const availableTasks = session.tasks.filter(task => task.active);
-        if (availableTasks.length === 0) {
-            return res.status(400).json({ message: 'Keine aktiven Aufgaben verfügbar.' });
-        }
-
-        const task = availableTasks[Math.floor(Math.random() * availableTasks.length)];
-        const players = session.players.sort(() => Math.random() - 0.5).slice(0, task.requiredPlayers || 1);
-
-        // Aufgabe als aktiv markieren
-        session.currentRound = { task, players };
-        await session.save();
-
-        res.status(200).json({ message: 'Neue Runde gestartet.', round: session.currentRound });
-    } catch (error) {
-        handleError(res, error, 'Fehler beim Starten einer neuen Runde');
-    }
-};
-
-// Aufgabe bewerten
-const evaluateTask = async (req, res) => {
-    const { sessionId, success } = req.body;
-
-    if (!sessionId || success === undefined) {
-        return res.status(400).json({ message: 'Session-ID und Bewertung sind erforderlich.' });
-    }
-
-    try {
-        const session = await Session.findOne({ sessionId });
-        if (!session) {
-            return res.status(404).json({ message: 'Session nicht gefunden.' });
-        }
-
-        if (!session.currentRound || !session.currentRound.task) {
-            return res.status(400).json({ message: 'Keine aktive Runde zum Bewerten gefunden.' });
-        }
-
-        const task = await Task.findById(session.currentRound.task);
+        // Zufällige Aufgabe auswählen
+        const task = session.tasks.find(task => task.active);
         if (!task) {
-            return res.status(404).json({ message: 'Aufgabe nicht gefunden.' });
+            return res.status(400).json({ message: 'Keine Aufgaben verfügbar.' });
         }
 
-        // Punktevergabe
-        const points = success ? 10 : -5;
-        session.players = session.players.map(player => ({
-            ...player,
-            points: player._id === session.currentRound.players[0]._id ? player.points + points : player.points,
-        }));
+        // Spieler zuweisen
+        const playersForTask = session.players.sort(() => Math.random() - 0.5).slice(0, task.requiredPlayers);
 
-        // Runde abschließen
-        session.currentRound = null;
+        session.currentRound = {
+            task: task._id,
+            players: playersForTask.map(player => player._id),
+        };
+
         await session.save();
-
-        res.status(200).json({ message: 'Aufgabe bewertet.', points });
+        res.status(200).json({ message: 'Neue Runde gestartet.', round: { task, players: playersForTask } });
     } catch (error) {
-        handleError(res, error, 'Fehler beim Bewerten der Aufgabe');
+        console.error('Fehler beim Starten der Runde:', error);
+        res.status(500).json({ message: 'Fehler beim Starten der Runde', error });
     }
 };
 
-module.exports = { startNewRound, evaluateTask };
+
+module.exports = { startNewRound };

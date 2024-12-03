@@ -29,9 +29,9 @@ mongoose
   .catch((err) => console.error('❌ Fehler bei der MongoDB-Verbindung:', err));
 
 // Routen einbinden
-app.use('/api/tasks', taskRoutes);
-app.use('/api/lobby', lobbyRoutes);
-app.use('/api/round', roundRoutes);
+app.use('/tasks', taskRoutes);
+app.use('/lobby', lobbyRoutes);
+app.use('/round', roundRoutes);
 
 // Beispiel-Route
 app.get('/', (req, res) => {

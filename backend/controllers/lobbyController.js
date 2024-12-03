@@ -1,97 +1,62 @@
-// backend/controllers/lobbyController.js
+const { v4: uuidv4 } = require('uuid');
 const Session = require('../models/sessionModel');
-const Task = require('../models/taskModel');
+
+// Kurzcode generieren
+const generateShortCode = () => {
+  return Math.random().toString(36).substring(2, 8).toUpperCase(); // 6-stelliger Code
+};
 
 // Lobby erstellen
 const createLobby = async (req, res) => {
-  const { host, category = 'Party' } = req.body;  // Kategorie ist optional, Standardwert 'Party'
+  const shortCode = generateShortCode();
+  const session = new Session({
+    host: req.body.host,
+    sessionId: uuidv4(),
+    shortCode,
+    category: req.body.category || 'Party',
+    tasks: [],
+    players: [{ userId: req.body.host, name: req.body.host, points: 0 }], // Host tritt bei
+  });
 
-  try {
-    console.log(host)
-    // Aufgaben aus der Datenbank für die gewählte Kategorie abrufen
-    const tasks = await Task.find({ active: true, category });
+  await session.save();
 
-    if (tasks.length === 0) {
-      return res.status(400).json({ message: 'Keine verfügbaren Aufgaben gefunden.' });
-    }
-
-    // Neue Session erstellen
-    const newSession = new Session({
-      host,
-      tasks: tasks.map(task => task._id), // Zuordnen der Aufgaben-IDs zur Session
-      category,
-      players: [],  // Anfangs noch keine Spieler in der Session
-    });
-
-    await newSession.save();
-    res.status(201).json({ sessionId: newSession.sessionId });
-  } catch (error) {
-    console.error("Fehler beim Erstellen der Lobby:", error);
-    res.status(500).json({ message: "Fehler beim Erstellen der Lobby", error });
-  }
+  res.status(201).json({
+    sessionId: session.sessionId,
+    shortCode: session.shortCode,
+    players: session.players,
+    host: req.body.host,
+  });
 };
 
 const joinLobby = async (req, res) => {
-  const { sessionId, userId } = req.body; // Sicherstellen, dass userId in der Anfrage übergeben wird
+    const { shortCode, userId, name } = req.body;
 
-  try {
-    // Finde die Session anhand der Session-ID
-    const session = await Session.findOne({ sessionId });
+    try {
+        const session = await Session.findOne({ shortCode }).populate('tasks');
+        if (!session) {
+            return res.status(404).json({ message: 'Lobby nicht gefunden.' });
+        }
 
-    if (!session) {
-      return res.status(404).json({ message: 'Session nicht gefunden' });
+        // Spieler hinzufügen, wenn er noch nicht existiert
+        if (!session.players.some(player => player.userId === userId)) {
+            session.players.push({ userId, name, points: 0 });
+            await session.save();
+        }
+
+        res.status(200).json({
+            sessionId: session.sessionId,
+            shortCode: session.shortCode, // Kurzcode immer mitgeben
+            players: session.players,
+            host: session.host,
+        });
+    } catch (error) {
+        console.error('Fehler beim Beitreten der Lobby:', error);
+        res.status(500).json({ message: 'Fehler beim Beitreten der Lobby.', error });
     }
-
-    // Füge den Spieler zur Session hinzu
-    session.players.push({ userId, points: 0 }); // Setze die userId hier korrekt
-    await session.save();
-
-    res.status(200).json({ message: 'Spieler erfolgreich der Lobby beigetreten' });
-  } catch (error) {
-    console.error("Fehler beim Beitreten der Lobby:", error);
-    res.status(500).json({ message: "Fehler beim Beitreten der Lobby", error });
-  }
 };
 
 
-// Runde starten
-const startRound = async (req, res) => {
-  const { sessionId } = req.body;
-
-  try {
-    const session = await Session.findOne({ sessionId }).populate('tasks');
-
-    if (!session) {
-      return res.status(404).json({ message: 'Session nicht gefunden' });
-    }
-
-    // Zufällige Aufgabe auswählen
-    const availableTasks = session.tasks.filter((task) => task.active);
-    if (availableTasks.length === 0) {
-      return res.status(400).json({ message: 'Keine verfügbaren Aufgaben' });
-    }
-
-    const task = availableTasks[Math.floor(Math.random() * availableTasks.length)];
-
-    // Zufällige Auswahl der Spieler basierend auf `requiredPlayers`
-    const playersForTask = [];
-    while (playersForTask.length < task.requiredPlayers) {
-      const randomPlayer = session.players[Math.floor(Math.random() * session.players.length)];
-      if (!playersForTask.includes(randomPlayer)) {
-        playersForTask.push(randomPlayer);
-      }
-    }
-
-    res.status(200).json({
-      message: 'Runde gestartet',
-      task: task,
-      playersForTask: playersForTask,  // Spieler, die die Aufgabe ausführen müssen
-    });
-
-  } catch (error) {
-    console.error('Fehler beim Starten der Runde:', error);
-    res.status(500).json({ message: 'Fehler beim Starten der Runde', error });
-  }
+module.exports = {
+  createLobby,
+  joinLobby,
 };
-
-module.exports = { createLobby, joinLobby };

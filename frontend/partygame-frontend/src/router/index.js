@@ -1,14 +1,22 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import Home from '../views/HomeView.vue';
+import HomeView from '@/views/HomeView.vue';
+import LobbyView from '@/views/LobbyView.vue';
 
-// Routen definieren
 const routes = [
-  { path: '/', name: 'Home', component: Home },
+  {
+    path: '/',
+    name: 'Home',
+    component: HomeView,
+  },
+  {
+    path: '/lobby',
+    name: 'Lobby',
+    component: LobbyView,
+  },
 ];
 
-// Router erstellen
 const router = createRouter({
-  history: createWebHistory(process.env.BASE_URL),
+  history: createWebHistory(),
   routes,
 });
 
