@@ -1,0 +1,16 @@
+/* src/assets/styles/darkmode.css */
+:root {
+    --background-color: #ffffff;
+    --text-color: #000000;
+  }
+  
+  [data-theme="dark"] {
+    --background-color: #121212;
+    --text-color: #ffffff;
+  }
+  
+  body {
+    background-color: var(--background-color);
+    color: var(--text-color);
+  }
+  
